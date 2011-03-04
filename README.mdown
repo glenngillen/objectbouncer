@@ -93,7 +93,7 @@ liable to change without notice.
 
 ## License
 
-is released under the MIT license.
+ObjectBouncer is released under the MIT license.
 
 Copyright (c) 2011 Glenn Gillen
 
