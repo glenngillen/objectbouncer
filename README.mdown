@@ -61,11 +61,11 @@ the President through SecretService first:
     @joe_biden   = VicePresident.new
     @tommy_chong = Hippie.new
 
-    SecretService.as(@gaddafi).on(@president).shake_hands # Raises PermissionDenied
-    SecretService.as(@joe_biden).on(@president).shake_hands # Allowed
-    SecretService.as(@tommy_chong).on(@president).shake_hands # Allowed
-    SecretService.as(@joe_biden).on(@president).high_five # Allowed
-    SecretService.as(@tommy_chong).on(@president).high_five # Raises PermissionDenied
+    SecretService.new(@gaddafi, @president).shake_hands # Raises PermissionDenied
+    SecretService.new(@joe_biden, @president).shake_hands # Allowed
+    SecretService.new(@tommy_chong, @president).shake_hands # Allowed
+    SecretService.new(@joe_biden, @president).high_five # Allowed
+    SecretService.new(@tommy_chong, @president).high_five # Raises PermissionDenied
 
 ## Why would I want to use this?
 
@@ -84,7 +84,11 @@ Test suite has currently only been confirmed on the following platforms:
 ## Contributions
 
 Patches gladly accepted. Please fork this repo, add a relevant test, and send
-me a pull request.
+me a pull request. Kudos to the following for design, advice, input, etc.:
+
+ * Pedro Belo
+ * Ryan Smith
+ * Graham Ashton
 
 ## Status
 

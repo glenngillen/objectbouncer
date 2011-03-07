@@ -46,18 +46,6 @@ module ObjectBouncer
         @policies
       end
 
-      def as(person)
-        doorman = new
-        doorman.send(:person=, person)
-        doorman
-      end
-
-      def on(object)
-        doorman = new
-        doorman.send(:object=, object)
-        doorman
-      end
-
       def blank_policy_template
         { :allow => { :if => [], :unless => [] },
           :deny  => { :if => [], :unless => [] }
@@ -66,19 +54,15 @@ module ObjectBouncer
 
     end
 
-    def on(object)
+    def initialize(accessee, object)
+      @accessee = accessee
       @object = object
-      self
-    end
-
-    def as(person)
-      @person = person
-      self
+      super
     end
 
     def method_missing(meth, *args, &block)
       if respond_to?(meth)
-        raise "adada!!!" if self.class.policies.nil? or self.class.policies.empty?
+        raise "TODO!!!" if self.class.policies.nil? or self.class.policies.empty?
         if call_allowed?(meth)
           @object.send(meth, *args, &block)
         elsif call_denied?(meth)
@@ -96,23 +80,23 @@ module ObjectBouncer
     private
       def call_allowed?(meth)
         if policies = self.class.policies[meth]
-          return true if !policies[:allow][:unless].empty? && !policies[:allow][:unless].detect{|policy| policy.call(@person, @object) rescue nil}
-          return true if policies[:allow][:if].detect{|policy| policy.call(@person, @object) rescue nil}
-          return true if policies[:deny][:unless].detect{|policy| policy.call(@person, @object) rescue nil}
+          return true if !policies[:allow][:unless].empty? && !policies[:allow][:unless].detect{|policy| policy.call(@accessee, @object) rescue nil}
+          return true if policies[:allow][:if].detect{|policy| policy.call(@accessee, @object) rescue nil}
+          return true if policies[:deny][:unless].detect{|policy| policy.call(@accessee, @object) rescue nil}
         end
       end
 
       def call_denied?(meth)
         return true if self.class.lockdown?
         if policies = self.class.policies[meth]
-          return true if policies[:allow][:unless].detect{|policy| policy.call(@person, @object) rescue nil}
-          return true if policies[:deny][:if].detect{|policy| policy.call(@person, @object) rescue nil}
+          return true if policies[:allow][:unless].detect{|policy| policy.call(@accessee, @object) rescue nil}
+          return true if policies[:deny][:if].detect{|policy| policy.call(@accessee, @object) rescue nil}
           return true if !policies[:deny][:unless].empty? && !call_allowed?(meth)
         end
       end
 
-      def person=(val)
-        @person = val
+      def accessee=(val)
+        @accessee = val
       end
 
       def object=(val)

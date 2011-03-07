@@ -53,25 +53,29 @@ class ObjectBouncerTest < Test::Unit::TestCase
 
     should "not let the public shake hands" do
       joe_public = JoePublic.new
+      secret_service = SecretService.new(joe_public, @president)
       assert_raise ObjectBouncer::PermissionDenied do
-        SecretService.as(joe_public).on(@president).shake_hands
+        secret_service.shake_hands
       end
     end
 
     should "let the first lady get in close" do
       first_lady = MichelleObama.new
-      assert_equal "shaking hands", SecretService.as(first_lady).on(@president).shake_hands
+      secret_service = SecretService.new(first_lady, @president)
+      assert_equal "shaking hands", secret_service.shake_hands
     end
 
     should "high five Biden" do
       vice_pres = JoeBiden.new
-      assert_equal "high five!", SecretService.as(vice_pres).on(@president).high_five
+      secret_service = SecretService.new(vice_pres, @president)
+      assert_equal "high five!", secret_service.high_five
     end
 
     should "not let the public high five" do
       joe_public = JoePublic.new
+      secret_service = SecretService.new(joe_public, @president)
       assert_raise ObjectBouncer::PermissionDenied do
-        SecretService.as(joe_public).on(@president).high_five
+        secret_service.high_five
       end
     end
 
@@ -85,30 +89,20 @@ class ObjectBouncerTest < Test::Unit::TestCase
 
     should "deny everything by default" do
       joe_public = JoePublic.new
+      coast_guard = CoastGuard.new(joe_public, @president)
       assert_raise ObjectBouncer::PermissionDenied do
-        CoastGuard.as(joe_public).on(@president).high_five
+        coast_guard.high_five
       end
       assert_raise ObjectBouncer::PermissionDenied do
-        CoastGuard.as(joe_public).on(@president).shake_hands
+        coast_guard.shake_hands
       end
     end
 
     should "allow if explictly said it's ok" do
       joe_public = JoePublic.new
-      assert_equal "I'm on your TV!", CoastGuard.as(joe_public).on(@president).watch_tv_appearance
+      coast_guard = CoastGuard.new(joe_public, @president)
+      assert_equal "I'm on your TV!", coast_guard.watch_tv_appearance
     end
   end
 
-  context "having a forgiving API" do
-
-    setup do
-      @president = President.new
-    end
-
-    should "let people chain methods either order" do
-      joe_public = JoePublic.new
-      assert_equal "I'm on your TV!", CoastGuard.as(joe_public).on(@president).watch_tv_appearance
-      assert_equal "I'm on your TV!", CoastGuard.on(@president).as(joe_public).watch_tv_appearance
-    end
-  end
 end

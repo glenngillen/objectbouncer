@@ -1,10 +1,10 @@
 Gem::Specification.new do |s|
-  s.version = '0.0.1'
+  s.version = '0.0.2'
   s.name = "objectbouncer"
   s.files = ["README.mdown", "Rakefile"]
   s.files += Dir["lib/**/*.rb","test/**/*"]
-  s.summary = ""
-  s.description = ""
+  s.summary = "A simple object proxy to restrict access to methods and attributes"
+  s.description = "A simple DSL and object proxy to restrict access to instances of your classes based on any conditional you provide"
   s.email = "glenn@rubypond.com"
   s.homepage = "http://github.com/rubypond/objectbouncer"
   s.authors = ["Glenn Gillen"]
@@ -12,16 +12,8 @@ Gem::Specification.new do |s|
   s.require_paths = [".", "lib"]
   s.has_rdoc = 'false'
 
-  if s.respond_to? :specification_version then
+  if s.respond_to? :specification_version
     current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
     s.specification_version = 2
-
-    if Gem::Version.new(Gem::RubyGemsVersion) >= Gem::Version.new('1.2.0') then
-      s.add_runtime_dependency('httparty', '= 0.6.1')
-    else
-      s.add_dependency('httparty', '= 0.6.1')
-    end
-  else
-    s.add_dependency('httparty', '= 0.6.1')
   end
 end
