@@ -64,9 +64,9 @@ module ObjectBouncer
     def method_missing(meth, *args, &block)
       if respond_to?(meth)
         raise "TODO!!!" if self.class.policies.nil? or self.class.policies.empty?
-        if call_allowed?(meth)
+        if call_allowed?(meth, *args)
           @object.send(meth, *args, &block)
-        elsif call_denied?(meth)
+        elsif call_denied?(meth, *args)
           raise ObjectBouncer::PermissionDenied.new
         end
       else
@@ -79,19 +79,19 @@ module ObjectBouncer
     end
 
     private
-      def call_allowed?(meth)
+      def call_allowed?(meth, *args)
         if policies = self.class.policies[meth]
-          return true if !policies[:allow][:unless].empty? && !policies[:allow][:unless].detect{|policy| policy.call(@accessee, @object) rescue nil}
-          return true if policies[:allow][:if].detect{|policy| policy.call(@accessee, @object) rescue nil}
-          return true if policies[:deny][:unless].detect{|policy| policy.call(@accessee, @object) rescue nil}
+          return true if !policies[:allow][:unless].empty? && !policies[:allow][:unless].detect{|policy| policy.call(@accessee, @object, *args) rescue nil}
+          return true if policies[:allow][:if].detect{|policy| policy.call(@accessee, @object, *args) rescue nil}
+          return true if policies[:deny][:unless].detect{|policy| policy.call(@accessee, @object, *args) rescue nil}
         end
       end
 
-      def call_denied?(meth)
+      def call_denied?(meth, *args)
         return true if self.class.lockdown?
         if policies = self.class.policies[meth]
-          return true if policies[:allow][:unless].detect{|policy| policy.call(@accessee, @object) rescue nil}
-          return true if policies[:deny][:if].detect{|policy| policy.call(@accessee, @object) rescue nil}
+          return true if policies[:allow][:unless].detect{|policy| policy.call(@accessee, @object, *args) rescue nil}
+          return true if policies[:deny][:if].detect{|policy| policy.call(@accessee, @object, *args) rescue nil}
           return true if !policies[:deny][:unless].empty? && !call_allowed?(meth)
         end
       end

@@ -7,6 +7,7 @@ class SecretService
     deny :shake_hands, :if => Proc.new{|person, president| person != president}
     allow :shake_hands, :if => Proc.new{|person, president| person.class == MichelleObama}
     deny :high_five, :unless => Proc.new{|person, president| person.who? == "it's me, Joe!"}
+    deny :give, :unless => Proc.new{|person, president, *args| args.first == :campaign_donation }
   end
 end
 
@@ -29,6 +30,10 @@ class President
 
   def watch_tv_appearance
     "I'm on your TV!"
+  end
+
+  def give(gift)
+    "thanks"
   end
 end
 
@@ -76,6 +81,20 @@ class ObjectBouncerTest < Test::Unit::TestCase
       secret_service = SecretService.new(joe_public, @president)
       assert_raise ObjectBouncer::PermissionDenied do
         secret_service.high_five
+      end
+    end
+
+    should "let the public give a donation" do
+      joe_public = JoePublic.new
+      secret_service = SecretService.new(joe_public, @president)
+      assert_equal "thanks", secret_service.give(:campaign_donation)
+    end
+
+    should "not let the public give a package" do
+      joe_public = JoePublic.new
+      secret_service = SecretService.new(joe_public, @president)
+      assert_raise ObjectBouncer::PermissionDenied do
+        secret_service.give(:suspect_package)
       end
     end
 
