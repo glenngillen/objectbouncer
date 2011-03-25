@@ -57,7 +57,7 @@ module ObjectBouncer
     def initialize(accessee, object)
       @accessee = accessee
       @object = object
-      super(nil)
+      super()
       self
     end
 
