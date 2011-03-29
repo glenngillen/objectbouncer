@@ -68,6 +68,8 @@ module ObjectBouncer
           @object.send(meth, *args, &block)
         elsif call_denied?(meth, *args)
           raise ObjectBouncer::PermissionDenied.new
+        else
+          @object.send(meth, *args, &block)
         end
       else
         super

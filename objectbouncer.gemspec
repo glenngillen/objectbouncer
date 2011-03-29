@@ -1,5 +1,5 @@
 Gem::Specification.new do |s|
-  s.version = '0.0.5'
+  s.version = '0.0.6'
   s.name = "objectbouncer"
   s.files = ["README.mdown", "Rakefile"]
   s.files += Dir["lib/**/*.rb","test/**/*"]
