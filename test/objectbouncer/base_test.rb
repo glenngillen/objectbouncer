@@ -1,7 +1,15 @@
 $:.unshift File.expand_path("..", File.dirname(__FILE__))
 require "test_helper"
 
-class SecretService
+class CoastGuard
+  include ObjectBouncer::Doorman
+  door_policy do
+    lockdown! # Overly protective are we?
+    #allow :watch_tv_appearance
+  end
+end
+
+class President
   include ObjectBouncer::Doorman
   door_policy do
     deny :shake_hands, :if => Proc.new{|person, president| person != president}
@@ -9,17 +17,7 @@ class SecretService
     deny :high_five, :unless => Proc.new{|person, president| person.who? == "it's me, Joe!"}
     deny :give, :unless => Proc.new{|person, president, *args| args.first == :campaign_donation }
   end
-end
 
-class CoastGuard
-  include ObjectBouncer::Doorman
-  door_policy do
-    lockdown # Overly protective are we?
-    allow :watch_tv_appearance
-  end
-end
-
-class President
   def shake_hands
     "shaking hands"
   end
@@ -58,9 +56,8 @@ class ObjectBouncerTest < Test::Unit::TestCase
 
     should "not let the public shake hands" do
       joe_public = JoePublic.new
-      secret_service = SecretService.new(joe_public, @president)
       assert_raise ObjectBouncer::PermissionDenied do
-        secret_service.shake_hands
+        @president.with(joe_public).shake_hands
       end
     end
 
