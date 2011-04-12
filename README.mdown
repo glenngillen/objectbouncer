@@ -5,7 +5,7 @@ methods based upon a series of preconditions.
 
 ## Usage
 
-Let's say we have a President who is protected by the SecretService:
+Let's say we have a President who needs protection:
 
     class President
       def shake_hands
@@ -45,9 +45,9 @@ And the following people:
       end
     end
 
-To protect the President we'd define a SecretService class like so:
+To protect the President we'd add the following to our class definition:
 
-    class SecretService
+    class President
       include ObjectBouncer::Doorman
       door_policy do
         deny :shake_hands,  :if => Proc.new{|person| person.dictator? }
@@ -59,21 +59,38 @@ To protect the President we'd define a SecretService class like so:
       end
     end
 
-And now, to put our security detail in place we run all contact with
-the President through SecretService first:
+And now, to put our security detail in place we need to specify the current
+user that is initiating the interaction:
 
     @obama       = President.new
     @gaddafi     = Nutjob.new
     @joe_biden   = VicePresident.new
     @tommy_chong = Hippie.new
 
-    SecretService.new(@gaddafi, @president).shake_hands # Raises PermissionDenied
-    SecretService.new(@joe_biden, @president).shake_hands # Allowed
-    SecretService.new(@tommy_chong, @president).shake_hands # Allowed
-    SecretService.new(@joe_biden, @president).high_five # Allowed
-    SecretService.new(@tommy_chong, @president).high_five # Raises PermissionDenied
-    SecretService.new(@gaddafi, @president).give(:donation) # Allowed
-    SecretService.new(@gaddafi, @president).give(:suspect_package) # Raises PermissionDenied
+    @obama.current_user = @gaddafi
+    @obama.shake_hands                # Raises PermissionDenied
+    @obama.give(:donation)            # Allowed
+    @obama.give(:suspect_package)     # Raises PermissionDenied
+
+    @obama.current_user = @joe_biden
+    @obama.shake_hands                # Allowed
+    @obama.high_five                  # Allowed
+
+    @obama.current_user = @tommy_chong
+    @obama.shake_hands                # Allowed
+    @obama.high_five                  # Raises PermissionDenied
+
+Alternatively, if you can specify the user when you instantiate the object:
+
+    @gaddafi     = Nutjob.new
+    @obama       = President.as(@gaddafi).new
+
+    @obama.shake_hands                # Raises PermissionDenied
+    @obama.give(:donation)            # Allowed
+    @obama.give(:suspect_package)     # Raises PermissionDenied
+
+Handy in things like application controllers where you want to pass in the
+currently logged in user.
 
 ## Why would I want to use this?
 
@@ -81,7 +98,7 @@ Most of the existing RBAC and other access based permission systems are
 implemented at a controller or action level within the MVC stack. ObjectBouncer
 allows you to provide more granular control my limiting access to discrete
 methods on an instance of an object, while keeping the permissions logic
-external to the Model itself.
+external to the methods themselves.
 
 ## Compatibility
 
