@@ -9,7 +9,12 @@ class Book < ActiveRecord::Base
   door_policy do
     deny :save,  :unless => Proc.new{|person| person.is_a?(Author) }
     deny :save!, :unless => Proc.new{|person| person.is_a?(Author) }
+    deny :destroy
   end
+
+  #def destroy
+  #  super
+  #end
 end
 
 class Author
@@ -63,6 +68,13 @@ class ActiveRecordTest < Test::Unit::TestCase
                              :price  => 4900)
         @book_as_author = Book.as(@author).find(@book.id)
         @book_as_reader = Book.as(@author).find(@book.id)
+      end
+
+      should "prevent all users from destroying (even with an overridden method)" do
+        @book.current_user = @author
+        assert_raise ObjectBouncer::PermissionDenied do
+          @book.destroy
+        end
       end
 
       should "prevent reading of individual attributes" do

@@ -1,6 +1,19 @@
 module ObjectBouncer
   module Doorman
     module ClassMethods
+
+      def ignoring_added_methods
+        ignoring_added_methods = @ignoring_added_methods
+        @ignoring_added_methods = true
+        yield
+      ensure
+        @ignoring_added_methods = ignoring_added_methods
+      end
+
+      def ignoring_added_methods?
+        @ignoring_added_methods
+      end
+
       def overwrite_initialize
         class_eval do
           unless method_defined?(:objectbouncer_initialize)
@@ -29,10 +42,6 @@ module ObjectBouncer
 
       def blank_policy_template
         { :if => [], :unless => [] }
-      end
-
-      def enforced?
-        ObjectBouncer.enforced?
       end
 
       def current_user=(user)
@@ -75,16 +84,21 @@ module ObjectBouncer
         end
       end
 
-      def apply_policies
-        policies.keys.each do |method|
-          protect_method!(method)
+      def apply_policies(key = nil)
+        if key && policies.keys.include?(key)
+          protect_method!(key, force = true)
+        else
+          policies.keys.each do |method|
+            protect_method!(method)
+          end
         end
       end
 
-      def protect_method!(method)
+      def protect_method!(method, force = false)
         renamed_method = "#{method}_without_objectbouncer".to_sym
         if method_defined?(method)
           return if method_defined?(renamed_method)
+          return if !force && method_defined?(renamed_method)
           alias_method renamed_method, method
           define_method method do |*args, &block|
             if call_denied?(method, *args)
@@ -94,8 +108,18 @@ module ObjectBouncer
             end
           end
         end
-
       end
+
+      def method_added(name)
+        return if ignoring_added_methods?
+        Thread.exclusive do
+          ignoring_added_methods do
+            overwrite_initialize if name == :initialize
+            apply_policies(name) if policies && policies.keys.include?(name)
+          end
+        end
+      end
+
     end
   end
 end
