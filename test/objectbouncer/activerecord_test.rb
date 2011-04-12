@@ -7,7 +7,8 @@ class Book < ActiveRecord::Base
                        :database => "objectbouncer_test.db"
   include ObjectBouncer::Doorman
   door_policy do
-    deny :create, :unless => Proc.new{|person| person.is_a?(Author) }
+    deny :save,  :unless => Proc.new{|person| person.is_a?(Author) }
+    deny :save!, :unless => Proc.new{|person| person.is_a?(Author) }
   end
 end
 

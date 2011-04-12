@@ -89,6 +89,18 @@ class ObjectBouncerTest < Test::Unit::TestCase
       end
     end
 
+    should "be able to specify user on creation" do
+      joe_public = JoePublic.new
+      @president = President.as(joe_public).new
+      assert_raise ObjectBouncer::PermissionDenied do
+        @president.shake_hands
+      end
+
+      first_lady = MichelleObama.new
+      @president = President.as(first_lady).new
+      assert_equal "shaking hands", @president.shake_hands
+    end
+
   end
 
 end

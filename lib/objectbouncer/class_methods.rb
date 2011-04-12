@@ -6,6 +6,7 @@ module ObjectBouncer
           unless method_defined?(:objectbouncer_initialize)
             define_method(:objectbouncer_initialize) do |*args, &block|
               original_initialize(*args, &block)
+              @policies = self.class.instance_policies
               apply_policies
               self
             end
@@ -19,27 +20,32 @@ module ObjectBouncer
       end
 
 
+      def all_policies
+        @all_policies || {}
+      end
+
+      def instance_policies
+        all_policies[:instance] || {}
+      end
+
+      def singleton_policies
+        all_policies[:singleton] || {}
+      end
+
       def policies
-        @policies || {}
+        singleton_policies || {}
       end
 
       def blank_policy_template
-        {
-          :allow => { :if => [], :unless => [] },
-          :deny  => { :if => [], :unless => [] }
-        }
+        { :if => [], :unless => [] }
       end
 
       def enforced?
         ObjectBouncer.enforced?
       end
 
-      def object_bouncer_settings
-        @policies
-      end
-
-      def object_bouncer_settings=(settings)
-        @policies = settings
+      def all_policies=(val)
+        @all_policies = val
       end
 
       def current_user=(user)
@@ -52,13 +58,18 @@ module ObjectBouncer
 
       def as(accessee)
         new_klass = self.clone
-        new_klass.table_name = self.table_name
-        new_klass.establish_connection self.connection_handler.connection_pools[name].spec.config
+        new_klass.table_name = self.table_name if respond_to?(:table_name)
+        if respond_to?(:connection_handler)
+          new_klass.establish_connection self.connection_handler.connection_pools[name].spec.config
+        end
         new_klass.instance_eval do
           include ObjectBouncer::Doorman
         end
-        new_klass.object_bouncer_settings = self.object_bouncer_settings
+        new_klass.all_policies = self.all_policies
         new_klass.current_user = accessee
+        new_klass.apply_policies
+        #require 'ruby-debug'; debugger
+        #new_klass.create
         new_klass
       end
 
@@ -73,19 +84,26 @@ module ObjectBouncer
       end
 
       def door_policy(&block)
-        @policies = {}
+        @all_policies = { :singleton => {}, :instance => {} }
         yield
+        apply_policies
       end
 
       def deny(method, options = {})
-        protect_method!(method, options[:singleton])
-        @policies[method] ||= blank_policy_template
+        scope = options[:singleton] ? :singleton : :instance
+        @all_policies[scope][method] ||= blank_policy_template
         if options.has_key?(:if)
-          @policies[method][:deny][:if] << options[:if]
+          @all_policies[scope][method][:if] << options[:if]
         elsif options.has_key?(:unless)
-          @policies[method][:deny][:unless] << options[:unless]
+          @all_policies[scope][method][:unless] << options[:unless]
         else
-          @policies[method][:deny][:if].unshift(Proc.new{ true == true })
+          @all_policies[scope][method][:if].unshift(Proc.new{ true == true })
+        end
+      end
+
+      def apply_policies
+        policies.keys.each do |method|
+          protect_method!(method, true)
         end
       end
 
@@ -102,11 +120,30 @@ module ObjectBouncer
             end
           end
         elsif singleton || respond_to?(method)
-          alias_method renamed_method, method
-        else
+          return if respond_to?(renamed_method)
+          def_str = "class << self; alias_method :#{renamed_method.to_s}, :#{method.to_s}; end"
+          #def_str = "alias_method :#{renamed_method.to_s}, :#{method.to_s}"
+          #self.instance_eval(def_str)
+          #self.class_eval(def_str)
+          #require 'ruby-debug'; debugger
+          method_def = %Q{
+            class << self
+              alias_method :#{renamed_method.to_s}, :#{method.to_s}
+              define_method :#{method.to_s} do |*args, &block|
+                require 'ruby-debug'; debugger
+                if call_denied?(:#{method.to_s}, *args)
+                  raise ObjectBouncer::PermissionDenied.new
+                else
+                  require 'ruby-debug'; debugger
+                  send(:#{renamed_method.to_s}, *args, &block)
+                end
+              end
+            end}
+
+          self.instance_eval(method_def)
+
         end
       end
-
     end
   end
 end
