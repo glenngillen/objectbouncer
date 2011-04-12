@@ -6,7 +6,7 @@ module ObjectBouncer
           unless method_defined?(:objectbouncer_initialize)
             define_method(:objectbouncer_initialize) do |*args, &block|
               original_initialize(*args, &block)
-              @policies = self.class.instance_policies
+              @policies = self.class.policies
               apply_policies
               self
             end
@@ -19,21 +19,12 @@ module ObjectBouncer
         end
       end
 
-
-      def all_policies
-        @all_policies || {}
-      end
-
-      def instance_policies
-        all_policies[:instance] || {}
-      end
-
-      def singleton_policies
-        all_policies[:singleton] || {}
+      def policies=(hash)
+        @policies = hash
       end
 
       def policies
-        singleton_policies || {}
+        @policies
       end
 
       def blank_policy_template
@@ -42,10 +33,6 @@ module ObjectBouncer
 
       def enforced?
         ObjectBouncer.enforced?
-      end
-
-      def all_policies=(val)
-        @all_policies = val
       end
 
       def current_user=(user)
@@ -65,49 +52,38 @@ module ObjectBouncer
         new_klass.instance_eval do
           include ObjectBouncer::Doorman
         end
-        new_klass.all_policies = self.all_policies
+        new_klass.policies = self.policies
         new_klass.current_user = accessee
         new_klass.apply_policies
         new_klass
       end
 
-      def protected_class(class_name)
-        names = class_name.split('::')
-        names.shift if names.empty? || names.first.empty?
-        constant = Object
-        names.each do |name|
-          constant = constant.const_get(name, false) || constant.const_missing(name)
-        end
-        @protected_class = constant
-      end
-
       def door_policy(&block)
-        @all_policies = { :singleton => {}, :instance => {} }
+        @policies = {}
         yield
         apply_policies
       end
 
       def deny(method, options = {})
-        scope = options[:singleton] ? :singleton : :instance
-        @all_policies[scope][method] ||= blank_policy_template
+        policies[method] ||= blank_policy_template
         if options.has_key?(:if)
-          @all_policies[scope][method][:if] << options[:if]
+          policies[method][:if] << options[:if]
         elsif options.has_key?(:unless)
-          @all_policies[scope][method][:unless] << options[:unless]
+          policies[method][:unless] << options[:unless]
         else
-          @all_policies[scope][method][:if].unshift(Proc.new{ true == true })
+          policies[method][:if].unshift(Proc.new{ true == true })
         end
       end
 
       def apply_policies
         policies.keys.each do |method|
-          protect_method!(method, true)
+          protect_method!(method)
         end
       end
 
-      def protect_method!(method, singleton = false)
+      def protect_method!(method)
         renamed_method = "#{method}_without_objectbouncer".to_sym
-        if !singleton && method_defined?(method)
+        if method_defined?(method)
           return if method_defined?(renamed_method)
           alias_method renamed_method, method
           define_method method do |*args, &block|
@@ -117,22 +93,6 @@ module ObjectBouncer
               send(renamed_method, *args, &block)
             end
           end
-        elsif singleton || respond_to?(method)
-          return if respond_to?(renamed_method)
-          method_def = %Q{
-            class << self
-              alias_method :#{renamed_method.to_s}, :#{method.to_s}
-              define_method :#{method.to_s} do |*args, &block|
-                require 'ruby-debug'; debugger
-                if call_denied?(:#{method.to_s}, *args)
-                  raise ObjectBouncer::PermissionDenied.new
-                else
-                  require 'ruby-debug'; debugger
-                  send(:#{renamed_method.to_s}, *args, &block)
-                end
-              end
-            end}
-          self.instance_eval(method_def)
         end
 
       end
