@@ -32,7 +32,7 @@ module ObjectBouncer
     end
 
     def policies
-      @policies || self.class.instance_policies
+      @policies || self.class.policies
     end
 
     def self.included(klass)
@@ -54,10 +54,10 @@ module ObjectBouncer
         return false if current_user.nil? && !enforced?
         if meth_policies = policies[meth]
           if !meth_policies[:unless].empty?
-            return false if meth_policies[:unless].detect{|policy| policy.call(current_user, @object, *args) rescue nil}
+            return false if meth_policies[:unless].detect{|policy| policy.call(current_user, self, *args) rescue nil}
             return true
           end
-          return true if meth_policies[:if].detect{|policy| policy.call(current_user, @object, *args) rescue nil}
+          return true if meth_policies[:if].detect{|policy| policy.call(current_user, self, *args) rescue nil}
         end
       end
 
