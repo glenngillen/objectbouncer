@@ -40,7 +40,7 @@ module ObjectBouncer
       klass.overwrite_initialize
       klass.instance_eval do
         def method_added(name)
-          #overwrite_initialize if name == :initialize
+          overwrite_initialize if name == :initialize
         end
       end
     end
@@ -64,10 +64,5 @@ module ObjectBouncer
       def enforced?
         ObjectBouncer.enforced?
       end
-
-      def object=(val)
-        @object = val
-      end
-
   end
 end

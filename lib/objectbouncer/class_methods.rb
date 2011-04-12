@@ -68,8 +68,6 @@ module ObjectBouncer
         new_klass.all_policies = self.all_policies
         new_klass.current_user = accessee
         new_klass.apply_policies
-        #require 'ruby-debug'; debugger
-        #new_klass.create
         new_klass
       end
 
@@ -121,11 +119,6 @@ module ObjectBouncer
           end
         elsif singleton || respond_to?(method)
           return if respond_to?(renamed_method)
-          def_str = "class << self; alias_method :#{renamed_method.to_s}, :#{method.to_s}; end"
-          #def_str = "alias_method :#{renamed_method.to_s}, :#{method.to_s}"
-          #self.instance_eval(def_str)
-          #self.class_eval(def_str)
-          #require 'ruby-debug'; debugger
           method_def = %Q{
             class << self
               alias_method :#{renamed_method.to_s}, :#{method.to_s}
@@ -139,10 +132,9 @@ module ObjectBouncer
                 end
               end
             end}
-
           self.instance_eval(method_def)
-
         end
+
       end
     end
   end
