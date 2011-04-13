@@ -37,7 +37,7 @@ module ObjectBouncer
       end
 
       def policies
-        @policies
+        @policies ||= {}
       end
 
       def blank_policy_template
@@ -61,14 +61,13 @@ module ObjectBouncer
         new_klass.instance_eval do
           include ObjectBouncer::Doorman
         end
-        new_klass.policies = self.policies
+        new_klass.policies = self.policies || {}
         new_klass.current_user = accessee
         new_klass.apply_policies
         new_klass
       end
 
       def door_policy(&block)
-        @policies = {}
         yield
         apply_policies
       end
