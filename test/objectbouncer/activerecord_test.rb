@@ -12,9 +12,9 @@ class Book < ActiveRecord::Base
     deny :destroy
   end
 
-  #def destroy
-  #  super
-  #end
+  def destroy
+    super
+  end
 end
 
 class Author
@@ -66,8 +66,6 @@ class ActiveRecordTest < Test::Unit::TestCase
         @book = Book.create!(:name   => "On Food & Cooking",
                              :author => "Harold McGee",
                              :price  => 4900)
-        @book_as_author = Book.as(@author).find(@book.id)
-        @book_as_reader = Book.as(@author).find(@book.id)
       end
 
       should "prevent all users from destroying (even with an overridden method)" do

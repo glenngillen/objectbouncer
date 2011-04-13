@@ -95,17 +95,21 @@ module ObjectBouncer
       end
 
       def protect_method!(method, force = false)
-        renamed_method = "#{method}_without_objectbouncer".to_sym
         if method_defined?(method)
-          return if method_defined?(renamed_method)
-          return if !force && method_defined?(renamed_method)
-          alias_method renamed_method, method
-          define_method method do |*args, &block|
-            if call_denied?(method, *args)
-              raise ObjectBouncer::PermissionDenied.new
-            else
-              send(renamed_method, *args, &block)
+          renamed_method = "#{method}_without_objectbouncer".to_sym
+          new_method     = "#{method}_with_objectbouncer".to_sym
+          unless method_defined?(new_method)
+            define_method new_method do |*args, &block|
+              if call_denied?(method, *args)
+                raise ObjectBouncer::PermissionDenied.new
+              else
+                send(renamed_method, *args, &block)
+              end
             end
+          end
+          if instance_method(method) != instance_method(new_method)
+            alias_method renamed_method, method
+            alias_method method, new_method
           end
         end
       end
